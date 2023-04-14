@@ -1,214 +1,15 @@
-import time
-from http.client import HTTPException
 
-import pymysql
-from fastapi import FastAPI, Depends, File, UploadFile
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, load_only, relationship
-
-from typing import Union, List, Optional
-from pydantic import AnyHttpUrl, IPvAnyAddress, BaseModel
-
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, String, Integer, Column, VARCHAR, TEXT, DateTime, and_, or_, ForeignKey
-from sqlalchemy.sql import text
-from sqlalchemy.sql import func
-
-import datetime
-
-import uvicorn
-
-from db.base_class import gen_uuid
-
-import random
-
-from fastapi.responses import FileResponse
+from common.Base import *
+from typing import List, Dict, Any
 
 app = FastAPI(title="昆工巡查系统测试文档",
               description="后台接口详情")
 
-# mysql 配置
-MYSQL_USERNAME: str = 'root'
-MYSQL_PASSWORD: str = "root"
-MYSQL_HOST: Union[AnyHttpUrl, IPvAnyAddress] = "127.0.0.1:3306"
-MYSQL_DATABASE: str = 'kust_inspection'
 
-# 配置数据库地址：数据库类型+数据库驱动名称://用户名:密码@机器地址:端口号/数据库名
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_USERNAME}:{MYSQL_PASSWORD}@" \
-                          f"{MYSQL_HOST}/{MYSQL_DATABASE}?charset=utf8mb4"
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL, encoding='utf-8')
-
-# 把当前的引擎绑定给这个会话；
-# autocommit：是否自动提交 autoflush：是否自动刷新并加载数据库 bind：绑定数据库引擎
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-# 实例化
-session = Session()
-
-Base = declarative_base()
-
-class Person(Base):
-    __tablename__ = "Person"
-    id = Column(
-        VARCHAR(32), default=gen_uuid,
-        index=True, unique=True, comment="用户id", primary_key=True)
-    name = Column(VARCHAR(128),  comment="姓名")
-    sex = Column(VARCHAR(128), comment="性别")
-    phone = Column(VARCHAR(128),comment="手机号码")
-    native_place = Column(VARCHAR(128), nullable=True, comment="籍贯")
-    number = Column(Integer, unique=True, comment="编号", autoincrement=True)
-    birth_place = Column(VARCHAR(128), nullable=True, comment="出生地")
-    work_unit = Column(VARCHAR(128), nullable=True, comment="工作单位")
-    unit_level = Column(VARCHAR(128), nullable=True, comment="单位层级")
-    unit_location = Column(VARCHAR(128), nullable=True, comment="单位所在地")
-    current_position = Column(VARCHAR(128), nullable=True, comment="现任职务")
-    proposed_position = Column(VARCHAR(128), nullable=True, comment="拟任职务")
-    proposed_dismissal_position = Column(VARCHAR(128), nullable=True, comment="拟免职务")
-    graduation_school = Column(VARCHAR(128), nullable=True, comment="毕业学校")
-    inspections = relationship("InspectionTask", back_populates="person")
-    relatives = relationship("Relatives", foreign_keys="[Relatives.person_id]", back_populates="person")
-
-    def __init__(self, id=None, name=None, sex=None, phone=None, native_place=None,
-                 birth_place=None, work_unit=None, unit_level=None, unit_location=None,
-                 current_position=None, proposed_position=None, proposed_dismissal_position=None,
-                 graduation_school=None):
-        self.id = id if id is not None else gen_uuid()
-        self.name = name
-        self.sex = sex
-        self.phone = phone
-        self.native_place = native_place
-        self.birth_place = birth_place
-        self.work_unit = work_unit
-        self.unit_level = unit_level
-        self.unit_location = unit_location
-        self.current_position = current_position
-        self.proposed_position = proposed_position
-        self.proposed_dismissal_position = proposed_dismissal_position
-        self.graduation_school = graduation_school
-        # self.number = number
-class InspectionTask(Base):
-    __tablename__ = "InspectionTask"
-    id = Column(VARCHAR(32), primary_key=True, comment="巡视任务ID")
-    person_id = Column(VARCHAR(32), ForeignKey("Person.id"), comment="关联的人员ID")
-    person = relationship("Person", back_populates="inspections")
-    administrative_division = Column(VARCHAR(128), nullable=False, comment="行政区划")
-    term = Column(VARCHAR(128), nullable=False, comment="届次")
-    round = Column(VARCHAR(128), nullable=False, comment="轮次")
-    inspection_start_date = Column(VARCHAR(128), nullable=False, comment="巡视开始时间")
-    inspection_end_date = Column(VARCHAR(128), nullable=False, comment="巡视结束时间")
-    standard_name = Column(VARCHAR(128), nullable=False, comment="标准名称")
-    inspection_group = Column(VARCHAR(128), nullable=False, comment="巡视组别")
-    inspected_unit = Column(VARCHAR(128), nullable=False, comment="被巡单位")
-    unified_number = Column(Integer, unique=True, comment="统一编号", autoincrement=True)
-    talent_pool_type = Column(VARCHAR(128), nullable=True, comment="人才库类型")
-    personnel_source = Column(VARCHAR(128), nullable=True, comment="人员来源")
-    security_classification = Column(VARCHAR(128), nullable=True, comment="密级标识")
-
-    def __init__(self, id=None, person_id=None, administrative_division=None,
-                 term=None, round=None, inspection_start_date=None, inspection_end_date=None,
-                 standard_name=None, inspection_group=None, inspected_unit=None,
-                 talent_pool_type=None, personnel_source=None, security_classification=None):
-        self.id = id
-        self.person_id = person_id
-        self.administrative_division = administrative_division
-        self.term = term
-        self.round = round
-        self.inspection_start_date = inspection_start_date
-        self.inspection_end_date = inspection_end_date
-        self.standard_name = standard_name
-        self.inspection_group = inspection_group
-        self.inspected_unit = inspected_unit
-        # self.unified_number = unified_number
-        self.talent_pool_type = talent_pool_type
-        self.personnel_source = personnel_source
-        self.security_classification = security_classification
-class User(Base):
-    # 定义表名
-    __tablename__ = 'User'
-    # 定义字段
-    # primary_key=True 设置为主键
-    id = Column(
-        VARCHAR(32), default=gen_uuid,
-        index=True, unique=True, comment="用户id", primary_key=True)
-    userName = Column(VARCHAR(128), comment="姓名")
-    password = Column(VARCHAR(128), comment="密码")
-    userSex = Column(VARCHAR(128), comment="性别")
-    userPhone = Column(VARCHAR(128), comment="手机号码")
-    unifiedNumber = Column(Integer, unique=True, comment="编号", autoincrement=True)
-
-
-    def __init__(self, userId,userName, password, userSex, userPhone,unifiedNumber):
-        self.id = userId
-        self.userName = userName
-        self.userSex = userSex
-        self.userPhone = userPhone
-        self.unifiedNumber = unifiedNumber
-        self.password = password
-
-class Relatives(Base):
-    __tablename__ = 'Relatives'
-
-    id = Column(
-        VARCHAR(32), default=gen_uuid,
-        index=True, unique=True, comment="id", primary_key=True)
-    person_id = Column(VARCHAR(32), ForeignKey('Person.id'), comment="关联的人员ID")
-    relative_id = Column(VARCHAR(32), ForeignKey('Person.id'), comment="关联的亲属ID")
-    relation = Column(VARCHAR(128), comment="关系")
-    person = relationship("Person", foreign_keys="[Relatives.person_id]", back_populates="relatives")
-    relative = relationship("Person", foreign_keys="[Relatives.relative_id]")
-
-    def __init__(self, id, person_id, relative_id,relation):
-        self.id = id
-        self.person_id = person_id
-        self.relative_id = relative_id
-        self.relation = relation
-
-
-Base.metadata.create_all(bind=engine)
-
-
-class CreatPerson(BaseModel):
-    name : str
-    sex : str
-    phone : str
-    native_place : str
-    # number : str
-    birth_place : str
-    work_unit : str
-    unit_level : str
-    unit_location : str
-    current_position : str
-    proposed_position : str
-    proposed_dismissal_position : str
-    graduation_school : str
-class CreatInspectionTask:
-    person_id = str
-    person = str
-    administrative_division = str
-    term = str
-    round = str
-    inspection_start_date = str
-    inspection_end_date = str
-    standard_name = str
-    inspection_group = str
-    inspected_unit = str
-    unified_number = str
-    talent_pool_type = str
-    personnel_source = str
-    security_classification = str
-class CreatUser(BaseModel):
-    userName : str
-    password : str
-    userSex : str
-    userPhone : str
-    unifiedNumber : str
-class CreatRelatives(BaseModel):
-    person_id = str
-    relative_id = str
-    relation = str
-
-@app.post("/person/addPerson")
+"""
+添加人才
+"""
+@app.post("/person/addPerson",summary="添加人才")
 async def add_person(person : CreatPerson ):
 
     try:
@@ -218,12 +19,11 @@ async def add_person(person : CreatPerson ):
         # else:
         person_id = gen_uuid()
         data_person = Person(
-               id = person_id,
+                id = person_id,
                 name=person.name,
                 sex=person.sex,
                 phone=person.phone,
                 native_place=person.native_place,
-                # number=person.number,
                 birth_place=person.birth_place,
                 work_unit=person.work_unit,
                 unit_level=person.unit_level,
@@ -231,6 +31,8 @@ async def add_person(person : CreatPerson ):
                 current_position=person.current_position,
                 proposed_position=person.proposed_position,
                 proposed_dismissal_position=person.proposed_dismissal_position,
+                personnel_source = person.personnel_source,
+                talent_pool_type = person.talent_pool_type,
                 graduation_school=person.graduation_school
             )
         session.add(data_person)
@@ -239,7 +41,12 @@ async def add_person(person : CreatPerson ):
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
     return {"code": 200, "id": person_id}
-@app.get("/person/getPersonlist")
+
+
+"""
+获取人员列表
+"""
+@app.get("/person/getPersonlist",summary="获取人员列表")
 async def get_person(number1: Optional[str] = None ):
 
     try:
@@ -261,7 +68,11 @@ async def get_person(number1: Optional[str] = None ):
         session.close()
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
-@app.delete("/person/deletePerson")
+
+"""
+删除人员
+"""
+@app.delete("/person/deletePerson",summary="删除人员")
 async def delete_person(person_id:str):
     try:
         # 先查询要删除的记录
@@ -278,8 +89,58 @@ async def delete_person(person_id:str):
         return {"code": "0002", "message": "未知错误"}
 
 
-# 添加一个新的接口，生成巡视组成员列表
-@app.post("/inspection/generate_team")
+
+"""
+添加巡查任务
+"""
+@app.post("/inspection/addTask",summary="添加巡查任务")
+async def add_inspection_task(task: CreateInspectionTask):
+    try:
+        task_id = gen_uuid()
+        data_task = InspectionTask(
+            id=task_id,
+            administrative_division=task.administrative_division,
+            term=task.term,
+            round=task.round,
+            inspection_start_date=task.inspection_start_date,
+            inspection_end_date=task.inspection_end_date,
+            standard_name=task.standard_name,
+            inspection_group=task.inspection_group_id,
+            inspected_unit=task.inspected_unit,
+            security_classification=task.security_classification,
+        )
+        session.add(data_task)
+        session.commit()
+        session.close()
+    except ArithmeticError:
+        return {"code": "0002", "message": "数据库异常"}
+    return {"code": 200, "id": task_id}
+
+
+
+"""
+为巡查任务添加组
+"""
+@app.post("/inspection/addGroup",summary="为巡查任务添加组")
+async def add_inspection_group(group: CreateInspectionGroup):
+    try:
+        group_id = gen_uuid()
+        data_group = InspectionGroup(
+            id=group_id,
+            name=group.name,
+            task_id=group.task_id
+        )
+        session.add(data_group)
+        session.commit()
+        session.close()
+    except ArithmeticError:
+        return {"code": "0002", "message": "数据库异常"}
+    return {"code": 200, "id": group_id}
+
+"""
+添加规避规则
+"""
+@app.post("/inspection/generate_team",summary="添加规避规则")
 async def generate_inspection_team(inspected_unit: Optional[str] = "任职单位",native_place:Optional[str] = "籍贯",birth_place:Optional[str] = "出生地",graduation_school:Optional[str] = "毕业院校",
                                    ):
     # 获取所有候选人
@@ -292,19 +153,28 @@ async def generate_inspection_team(inspected_unit: Optional[str] = "任职单位
     try:
         for candidate in candidates:
             # 检查回避条件
+            # 1.a)	回避本人任职单位以及亲属关系任职单位承担巡视巡察工作
             avoid_unit = (inspected_unit is not None) and \
                          ((candidate.work_unit == inspected_unit) or
                           any(relative_person.work_unit == inspected_unit
                               for relative in candidate.relatives
                               for relative_person in session.query(Person).filter(Person.id == relative.relative_id)))
+            for relative in candidate.relatives:
+                for relative_person in session.query(Person).filter(Person.id == relative.relative_id):
+                    print("--------------------------")
+                    print(relative_person.work_unit)
+                    print("--------------------------")
             # print(inspected_unit)
             # print(candidate.work_unit)
+            # b)	回避本人所在籍贯承担巡视巡察工作
             avoid_native_place = (native_place is not None) and (candidate.native_place == native_place)
             # print(native_place is not None)
             # print(candidate.native_place == native_place)
             # print(candidate.native_place)
             # print(avoid_native_place)
+            # c)	回避本人出生地承担巡视巡察工作
             avoid_birth_place = (birth_place is not None) and (candidate.birth_place == birth_place)
+            # e)	回避本人毕业院校承担巡视巡察工作
             avoid_graduation_school = (graduation_school is not None) and (candidate.graduation_school == graduation_school)
             # 如果满足所有回避条件，将候选人添加到巡视组
             if not (avoid_unit or avoid_native_place or avoid_birth_place or avoid_graduation_school):
@@ -315,8 +185,40 @@ async def generate_inspection_team(inspected_unit: Optional[str] = "任职单位
     except ArithmeticError:
         return {"code": "0002", "message": "发生错误"}
 
+"""
+添加人员（符合规则的人员）到组中
+"""
+@app.post("/inspection/add_person_to_group",summary="添加人员（符合规则的人员）到组中")
+async def add_person_to_group(request: AddPersonToGroupRequest):
+    try:
+        # 根据 group_id 查询出对应的 InspectionGroup 对象
+        group = session.query(InspectionGroup).filter(InspectionGroup.id == request.group_id).first()
+
+        if not group:
+            return {"code": "0003", "message": "组不存在"}
+
+        # 遍历 person_ids 并将每个人员添加到组中
+        for person_id in request.person_ids:
+            person = session.query(Person).filter(Person.id == person_id).first()
+
+            if not person:
+                return {"code": "0004", "message": f"人员ID {person_id} 不存在"}
+
+            # 将满足规避规则的人员添加到组中
+            group.members.append(person)
+
+        # 提交更改并关闭会话
+        session.commit()
+        session.close()
+
+    except ArithmeticError:
+        return {"code": "0002", "message": "数据库异常"}
+
+    return {"code": 200, "message": "人员添加成功"}
+
+
 # 添加管理员
-@app.post("/User/addUser")
+@app.post("/User/addUser",summary="添加管理员")
 async def add_user(user : CreatUser ):
 
     try:
@@ -343,7 +245,73 @@ async def add_user(user : CreatUser ):
     return {"code": 200, "id": user_id}
 
 
+"""
+根据任务ID查询
+"""
+@app.get("/inspection/{task_id}/groupMembers", response_model=Any,summary="根据任务ID查询")
+async def get_group_members(task_id: str):
+    try:
+        task = session.query(InspectionTask).filter(InspectionTask.id == task_id).one()
+    except Exception as e:
+        return {"code": "0002", "message": "任务未找到"}
+    groups = session.query(InspectionGroup).filter(InspectionGroup.task_id == task_id).all()
+    result = []
+    for group in groups:
+        members = session.query(Person).join(inspection_group_membership).filter(
+            inspection_group_membership.c.inspection_group_id == group.id).all()
+        member_list = [member.__dict__ for member in members]
+        for member in member_list:
+            member.pop('_sa_instance_state', None)
 
+        group_info = {
+            'task': task.__dict__,
+            'group': group.__dict__,
+            'members': member_list
+        }
+        group_info['task'].pop('_sa_instance_state', None)
+        group_info['group'].pop('_sa_instance_state', None)
+
+        result.append(group_info)
+        print(result)
+
+    return {"code": 200, "data": result}
+
+
+"""
+获取巡视任务列表
+"""
+@app.get("/inspection/taskList", response_model=Any,summary="获取巡视任务列表")
+async def list_inspection_tasks():
+    tasks = session.query(InspectionTask).all()
+
+    result = []
+    for task in tasks:
+        groups = session.query(InspectionGroup).filter(InspectionGroup.task_id == task.id).all()
+
+        task_groups = []
+        for group in groups:
+            members = session.query(Person).join(inspection_group_membership).filter(inspection_group_membership.c.inspection_group_id == group.id).all()
+            member_list = [member.__dict__ for member in members]
+            for member in member_list:
+                member.pop('_sa_instance_state', None)
+
+            group_info = {
+                'group': group.__dict__,
+                'members': member_list
+            }
+            group_info['group'].pop('_sa_instance_state', None)
+
+            task_groups.append(group_info)
+
+        task_info = {
+            'task': task.__dict__,
+            'groups': task_groups
+        }
+        task_info['task'].pop('_sa_instance_state', None)
+
+        result.append(task_info)
+
+    return {"code": 200, "data": result}
 
 
 if __name__ == "__main__":
@@ -352,5 +320,3 @@ if __name__ == "__main__":
     # 第一个参数 "main:app" 就表示这个含义
     # 然后是 host 和 port 表示监听的 ip 和端口
     uvicorn.run("main:app", host="0.0.0.0", port=8000)
-
-
