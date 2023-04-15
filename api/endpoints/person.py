@@ -5,6 +5,8 @@
 -文件    : person.py
 -说明    :
 '''
+from sqlalchemy.exc import SQLAlchemyError
+
 from common.Base import *
 from fastapi import *
 router = APIRouter(prefix='/person')
@@ -89,4 +91,28 @@ async def delete_person(person_id:str):
     except Exception as e:
         # 捕获异常，并返回错误信息
         return {"code": "0002", "message": "未知错误"}
+
+@router.patch("/updatePersn/{person_id}", summary="更新人员", description="更新已经存在的人员信息")
+async def update_person(person_id: str, person: UpdatePerson):
+    # 查询要更新的Person对象
+    person_to_update = session.query(Person).filter(Person.id == person_id).first()
+
+    # 如果找不到Person对象，返回404错误
+    if person_to_update is None:
+        return {"code": "404", "message": "人员不存在"}
+
+    print(person.dict())
+    # 更新Person对象的属性
+    for attr, value in person.dict().items():
+        if value is not None:
+            setattr(person_to_update, attr, value)
+
+    # 将更改提交到数据库
+    session.commit()
+
+    # 返回更新后的Person对象
+    return {"code": "200", "message": "更新成功"}
+
+
+
 
