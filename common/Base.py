@@ -17,6 +17,7 @@ from sqlalchemy.sql import func
 import datetime
 import uvicorn
 from db.base_class import gen_uuid
+from pydantic import *
 
 # mysql 配置
 MYSQL_USERNAME: str = 'root'
@@ -151,8 +152,8 @@ class Relatives(Base):
     person = relationship("Person", foreign_keys="[Relatives.person_id]", back_populates="relatives")
     relative = relationship("Person", foreign_keys="[Relatives.relative_id]")
 
-    def __init__(self, id, person_id, relative_id,relation):
-        self.id = id
+    def __init__(self, id=None, person_id=None, relative_id=None, relation=None):
+        self.id = id if id is not None else gen_uuid()
         self.person_id = person_id
         self.relative_id = relative_id
         self.relation = relation
@@ -224,3 +225,32 @@ class CreateInspectionGroup(BaseModel):
 class AddPersonToGroupRequest(BaseModel):
     group_id: str
     person_ids: List[str]
+# 更新人员信息的模型
+class UpdatePerson(BaseModel):
+    name: Optional[str] = Field(None, description="姓名")
+    sex: Optional[str] = Field(None, description="性别")
+    phone: Optional[str] = Field(None, description="手机号码")
+    native_place: Optional[str] = Field(None, description="籍贯")
+    birth_place: Optional[str] = Field(None, description="出生地")
+    work_unit: Optional[str] = Field(None, description="工作单位")
+    unit_level: Optional[str] = Field(None, description="单位层级")
+    unit_location: Optional[str] = Field(None, description="单位所在地")
+    current_position: Optional[str] = Field(None, description="现任职务")
+    proposed_position: Optional[str] = Field(None, description="拟任职务")
+    proposed_dismissal_position: Optional[str] = Field(None, description="拟免职务")
+    graduation_school: Optional[str] = Field(None, description="毕业学校")
+    talent_pool_type: Optional[str] = Field(None, description="人才库类型")
+    personnel_source: Optional[str] = Field(None, description="人员来源")
+# 添加亲属关系的模型
+class RelativeCreate(BaseModel):
+    person_id: str
+    relative_id: str
+    relation: str
+class RelativesOut(BaseModel):
+    id: str
+    person_id: str
+    relative_id: str
+    relation: str
+
+    class Config:
+        orm_mode = True
