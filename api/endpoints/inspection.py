@@ -38,24 +38,7 @@ async def add_inspection_task(task: CreateInspectionTask):
 
 
 
-"""
-为巡查任务添加组
-"""
-@router.post("/addGroup",summary="为巡查任务添加组")
-async def add_inspection_group(group: CreateInspectionGroup):
-    try:
-        group_id = gen_uuid()
-        data_group = InspectionGroup(
-            id=group_id,
-            name=group.name,
-            task_id=group.task_id
-        )
-        session.add(data_group)
-        session.commit()
-        session.close()
-    except ArithmeticError:
-        return {"code": "0002", "message": "数据库异常"}
-    return {"code": 200, "id": group_id}
+
 
 """
 添加规避规则
@@ -105,72 +88,115 @@ async def generate_inspection_team(inspected_unit: Optional[str] = "任职单位
     except ArithmeticError:
         return {"code": "0002", "message": "发生错误"}
 
-"""
-添加人员（符合规则的人员）到组中
-"""
-@router.post("/add_person_to_group",summary="添加人员（符合规则的人员）到组中")
-async def add_person_to_group(request: AddPersonToGroupRequest):
+
+# 根据巡查任务ID获取巡视组
+@router.get("/{task_id}/groups", summary="根据巡查任务ID获取巡视组")
+async def get_groups_by_task(task_id: str):
     try:
-        # 根据 group_id 查询出对应的 InspectionGroup 对象
-        group = session.query(InspectionGroup).filter(InspectionGroup.id == request.group_id).first()
+        groups = session.query(InspectionGroup).filter(InspectionGroup.task_id == task_id).all()
+        return groups
+    except Exception as e:
+        return {"code": "0001", "message": f"数据库异常: {e}"}
 
-        if not group:
-            return {"code": "0003", "message": "组不存在"}
 
-        # 遍历 person_ids 并将每个人员添加到组中
-        for person_id in request.person_ids:
-            person = session.query(Person).filter(Person.id == person_id).first()
 
-            if not person:
-                return {"code": "0004", "message": f"人员ID {person_id} 不存在"}
-
-            # 将满足规避规则的人员添加到组中
-            group.members.append(person)
-
-        # 提交更改并关闭会话
-        session.commit()
-        session.close()
-
-    except ArithmeticError:
-        return {"code": "0002", "message": "数据库异常"}
-
-    return {"code": 200, "message": "人员添加成功"}
-
-"""
-# 获取巡视任务列表
-# """
-@router.get("/taskList", response_model=Any,summary="获取巡视任务列表")
+# 获取巡查任务列表
+@router.get("/tasks", summary="获取巡查任务列表")
 async def list_inspection_tasks():
-    tasks = session.query(InspectionTask).all()
+    try:
+        tasks = session.query(InspectionTask).all()
+        return tasks
+    except Exception as e:
+        return {"code": "0001", "message": f"数据库异常: {e}"}
 
-    result = []
-    for task in tasks:
-        groups = session.query(InspectionGroup).filter(InspectionGroup.task_id == task.id).all()
 
-        task_groups = []
-        for group in groups:
-            members = session.query(Person).join(inspection_group_membership).filter(inspection_group_membership.c.inspection_group_id == group.id).all()
-            member_list = [member.__dict__ for member in members]
-            for member in member_list:
-                member.pop('_sa_instance_state', None)
+# """
+# # 获取巡视任务列表
+#
+# 包括组和成员
+# # """
+#
+#
+# @router.get("/taskList", response_model=Any, summary="获取巡视任务列表")
+# async def list_inspection_tasks():
+#     tasks = session.query(InspectionTask).all()
+#
+#     result = []
+#     for task in tasks:
+#         groups = session.query(InspectionGroup).filter(InspectionGroup.task_id == task.id).all()
+#
+#         task_groups = []
+#         for group in groups:
+#             members = session.query(Person).join(inspection_group_membership).filter(
+#                 inspection_group_membership.c.inspection_group_id == group.id).all()
+#             member_list = []
+#             for member in members:
+#                 member_dict = member.__dict__
+#                 member_dict.pop('_sa_instance_state', None)
+#
+#                 # 获取亲属信息并添加到成员字典中
+#                 relatives = session.query(Relatives).filter(Relatives.person_id == member.id).all()
+#                 relative_list = []
+#                 for relative in relatives:
+#                     relative_dict = relative.__dict__
+#                     relative_dict.pop('_sa_instance_state', None)
+#                     relative_list.append(relative_dict)
+#
+#                 member_dict['relatives'] = relative_list
+#                 member_list.append(member_dict)
+#
+#             group_info = {
+#                 'group': group.__dict__,
+#                 'members': member_list
+#             }
+#             group_info['group'].pop('_sa_instance_state', None)
+#
+#             task_groups.append(group_info)
+#
+#         task_info = {
+#             'task': task.__dict__,
+#             'groups': task_groups
+#         }
+#         task_info['task'].pop('_sa_instance_state', None)
+#
+#         result.append(task_info)
+#
+#     return {"code": 200, "data": result}
 
-            group_info = {
-                'group': group.__dict__,
-                'members': member_list
-            }
-            group_info['group'].pop('_sa_instance_state', None)
 
-            task_groups.append(group_info)
 
-        task_info = {
-            'task': task.__dict__,
-            'groups': task_groups
-        }
-        task_info['task'].pop('_sa_instance_state', None)
-
-        result.append(task_info)
-
-    return {"code": 200, "data": result}
+# @router.get("/taskList", response_model=Any,summary="获取巡视任务列表")
+# async def list_inspection_tasks():
+#     tasks = session.query(InspectionTask).all()
+#
+#     result = []
+#     for task in tasks:
+#         groups = session.query(InspectionGroup).filter(InspectionGroup.task_id == task.id).all()
+#
+#         task_groups = []
+#         for group in groups:
+#             members = session.query(Person).join(inspection_group_membership).filter(inspection_group_membership.c.inspection_group_id == group.id).all()
+#             member_list = [member.__dict__ for member in members]
+#             for member in member_list:
+#                 member.pop('_sa_instance_state', None)
+#
+#             group_info = {
+#                 'group': group.__dict__,
+#                 'members': member_list
+#             }
+#             group_info['group'].pop('_sa_instance_state', None)
+#
+#             task_groups.append(group_info)
+#
+#         task_info = {
+#             'task': task.__dict__,
+#             'groups': task_groups
+#         }
+#         task_info['task'].pop('_sa_instance_state', None)
+#
+#         result.append(task_info)
+#
+#     return {"code": 200, "data": result}
 
 """
 # 根据任务ID查询
