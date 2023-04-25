@@ -19,10 +19,17 @@ import uvicorn
 from db.base_class import gen_uuid
 from pydantic import *
 
-# mysql 配置
+# mysql 配置（本地）
+# MYSQL_USERNAME: str = 'root'
+# MYSQL_PASSWORD: str = "root"
+
+# mysql 配置（服务器）
 MYSQL_USERNAME: str = 'root'
-MYSQL_PASSWORD: str = "root"
-MYSQL_HOST: Union[AnyHttpUrl, IPvAnyAddress] = "127.0.0.1:3306"
+MYSQL_PASSWORD: str = "labcloud2022!"
+# 本地数据库
+# MYSQL_HOST: Union[AnyHttpUrl, IPvAnyAddress] = "127.0.0.1:3306"
+# 服务器数据库
+MYSQL_HOST: Union[AnyHttpUrl, IPvAnyAddress] = "222.197.219.49:3300"
 MYSQL_DATABASE: str = 'kust_inspection'
 
 # 配置数据库地址：数据库类型+数据库驱动名称://用户名:密码@机器地址:端口号/数据库名

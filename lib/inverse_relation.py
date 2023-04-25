@@ -3,7 +3,7 @@
 -时间    : 2023/4/15 21:54
 -作者 : 王子康
 -文件    : inverse_relation.py
--说明    :
+-说明    : 亲属关系映射
 '''
 # 亲属关系映射表
 def get_inverse_relation(relation: str) -> str:
