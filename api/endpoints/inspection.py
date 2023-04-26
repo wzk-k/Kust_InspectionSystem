@@ -38,17 +38,22 @@ async def add_inspection_task(task: CreateInspectionTask):
     return {"code": 200, "id": task_id}
 
 
-
+class genTeam(BaseModel):
+    inspected_unit: str
+    native_place: str
+    birth_place: str
+    graduation_school: str
 
 
 """
 添加规避规则
 """
 @router.post("/generate_team",summary="添加规避规则")
-async def generate_inspection_team(inspected_unit: Optional[str] = "任职单位",native_place:Optional[str] = "籍贯",birth_place:Optional[str] = "出生地",graduation_school:Optional[str] = "毕业院校",
+async def generate_inspection_team(
+        # inspected_unit: Optional[str] = "任职单位",native_place:Optional[str] = "籍贯",birth_place:Optional[str] = "出生地",graduation_school:Optional[str] = "毕业院校",
+        rule: genTeam
                                    ):
     # 获取所有候选人
-    print(inspected_unit,native_place,birth_place,graduation_school)
     candidates = session.query(Person).all()
 
     print(candidates)
@@ -58,9 +63,9 @@ async def generate_inspection_team(inspected_unit: Optional[str] = "任职单位
         for candidate in candidates:
             # 检查回避条件
             # 1.a)	回避本人任职单位以及亲属关系任职单位承担巡视巡察工作
-            avoid_unit = (inspected_unit is not None) and \
-                         ((candidate.work_unit == inspected_unit) or
-                          any(relative_person.work_unit == inspected_unit
+            avoid_unit = (rule.inspected_unit is not None) and \
+                         ((candidate.work_unit == rule.inspected_unit) or
+                          any(relative_person.work_unit == rule.inspected_unit
                               for relative in candidate.relatives
                               for relative_person in session.query(Person).filter(Person.id == relative.relative_id)))
             for relative in candidate.relatives:
@@ -71,15 +76,15 @@ async def generate_inspection_team(inspected_unit: Optional[str] = "任职单位
             # print(inspected_unit)
             # print(candidate.work_unit)
             # b)	回避本人所在籍贯承担巡视巡察工作
-            avoid_native_place = (native_place is not None) and (candidate.native_place == native_place)
+            avoid_native_place = (rule.native_place is not None) and (candidate.native_place == rule.native_place)
             # print(native_place is not None)
             # print(candidate.native_place == native_place)
             # print(candidate.native_place)
             # print(avoid_native_place)
             # c)	回避本人出生地承担巡视巡察工作
-            avoid_birth_place = (birth_place is not None) and (candidate.birth_place == birth_place)
+            avoid_birth_place = (rule.birth_place is not None) and (candidate.birth_place == rule.birth_place)
             # e)	回避本人毕业院校承担巡视巡察工作
-            avoid_graduation_school = (graduation_school is not None) and (candidate.graduation_school == graduation_school)
+            avoid_graduation_school = (rule.graduation_school is not None) and (candidate.graduation_school == rule.graduation_school)
             # 如果满足所有回避条件，将候选人添加到巡视组
             if not (avoid_unit or avoid_native_place or avoid_birth_place or avoid_graduation_school):
                 inspection_team.append(candidate)
