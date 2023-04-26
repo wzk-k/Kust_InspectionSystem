@@ -47,6 +47,7 @@ async def login_user(
 ):
     try:
         user = session.query(User).filter(User.userName == user.userName).first()
+        session.close()
         if user and user.password == user.password:
             return {"code": 200, "message": "登录成功"}
     except ArithmeticError:
