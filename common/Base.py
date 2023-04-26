@@ -130,20 +130,24 @@ class User(Base):
     id = Column(
         VARCHAR(32), default=gen_uuid,
         index=True, unique=True, comment="用户id", primary_key=True)
-    userName = Column(VARCHAR(128), comment="姓名")
+    email = Column(VARCHAR(128), comment="用户邮箱")
+    userName = Column(VARCHAR(128), comment="用户名称")
     password = Column(VARCHAR(128), comment="密码")
     userSex = Column(VARCHAR(128), comment="性别")
-    userPhone = Column(VARCHAR(128), comment="手机号码")
+    phonenumber = Column(VARCHAR(128), comment="手机号码")
+    dept = Column(VARCHAR(128), comment="所属部门")
     unifiedNumber = Column(Integer, unique=True, comment="编号", autoincrement=True)
 
 
-    def __init__(self, userId,userName, password, userSex, userPhone,unifiedNumber):
+    def __init__(self, userId,userName, password, userSex, userPhone,unifiedNumber, email, dept):
         self.id = userId
         self.userName = userName
-        self.userSex = userSex
-        self.userPhone = userPhone
+        self.phonenumber = userPhone
         self.unifiedNumber = unifiedNumber
         self.password = password
+        self.email = email
+        self.userSex = userSex
+        self.dept = dept
 
 
 class Relatives(Base):

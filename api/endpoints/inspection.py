@@ -100,6 +100,20 @@ async def get_groups_by_task(task_id: str):
         return {"code": "0001", "message": f"数据库异常: {e}"}
 
 
+@router.get("/allGroups", summary="根据巡查任务ID获取巡视组")
+async def get_groups_by_task(
+        pageNum: Optional[int] = 1,
+        pageSize: Optional[int] = 10,
+):
+    try:
+        count = len(list(session.query(InspectionGroup).all()))
+        offset_data = pageSize * (pageNum - 1)
+        groups = session.query(InspectionGroup).offset(offset_data).limit(pageSize).all()
+        session.close()
+        return {"code": 200, "data": groups, "total": count}
+    except Exception as e:
+        return {"code": "0001", "message": f"数据库异常: {e}"}
+
 
 # 获取巡查任务列表
 @router.get("/tasks", summary="获取巡查任务列表")

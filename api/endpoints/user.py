@@ -27,7 +27,6 @@ async def add_user(user : CreatUser ):
                 userSex=user.userSex,
                 userPhone=user.userPhone,
                 unifiedNumber=user.unifiedNumber
-
             )
             session.add(data_user)
         session.commit()
@@ -35,3 +34,32 @@ async def add_user(user : CreatUser ):
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
     return {"code": 200, "id": user_id}
+
+
+class LoginUser(BaseModel):
+    userName: str
+    password: str
+
+
+@router.post("/login", summary="管理员登录")
+async def login_user(
+    user: LoginUser
+):
+    try:
+        user = session.query(User).filter(User.userName == user.userName).first()
+        if user and user.password == user.password:
+            return {"code": 200, "message": "登录成功"}
+    except ArithmeticError:
+        return {"code": "0002", "message": "数据库异常"}
+    return {"code": 400, "message": "登录失败,密码错误或不存在用户！"}
+
+
+@router.get("/getAmin", summary="管理员登录")
+async def get_admin():
+    try:
+        user = session.query(User).first()
+        if user:
+            return {"code": 200, "data": user}
+    except ArithmeticError:
+        return {"code": "0002", "message": "数据库异常"}
+    return {"code": 400, "message": "获取失败" }
