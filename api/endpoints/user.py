@@ -8,6 +8,8 @@
 
 from common.Base import *
 from fastapi import *
+from pymysql.err import OperationalError
+import time
 router = APIRouter(prefix='/user')
 # 添加管理员
 @router.post("/addUser",summary="添加管理员")
@@ -41,18 +43,42 @@ class LoginUser(BaseModel):
     password: str
 
 
+# @router.post("/login", summary="管理员登录")
+# async def login_user(
+#     user: LoginUser
+# ):
+#     try:
+#         user = session.query(User).filter(User.userName == user.userName).first()
+#         if user and user.password == user.password:
+#             session.close()
+#             return {"code": 200, "message": "登录成功"}
+#     except ArithmeticError:
+#         return {"code": "0002", "message": "数据库异常"}
+#     return {"code": 400, "message": "登录失败,密码错误或不存在用户！"}
+
 @router.post("/login", summary="管理员登录")
-async def login_user(
-    user: LoginUser
-):
-    try:
-        user = session.query(User).filter(User.userName == user.userName).first()
-        session.close()
-        if user and user.password == user.password:
-            return {"code": 200, "message": "登录成功"}
-    except ArithmeticError:
-        return {"code": "0002", "message": "数据库异常"}
+async def login_user(user: LoginUser):
+    max_retries = 3
+
+    for attempt in range(max_retries):
+        try:
+            user = session.query(User).filter(User.userName == user.userName).first()
+            if user and user.password == user.password:
+                session.close()
+                return {"code": 200, "message": "登录成功"}
+        except OperationalError as e:
+            if e.args[0] == 1213 and attempt < max_retries - 1:  # Deadlock error
+                time.sleep(0.1)  # Wait for a short time before retrying
+                session.rollback()
+            else:
+                return {"code": "0002", "message": "数据库异常"}
+        except ArithmeticError:
+            return {"code": "0002", "message": "数据库异常"}
+
     return {"code": 400, "message": "登录失败,密码错误或不存在用户！"}
+
+
+
 
 
 @router.get("/getAmin", summary="管理员登录")
@@ -60,6 +86,7 @@ async def get_admin():
     try:
         user = session.query(User).first()
         if user:
+            session.close()
             return {"code": 200, "data": user}
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}

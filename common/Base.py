@@ -21,7 +21,11 @@ from pydantic import *
 
 # mysql 配置
 MYSQL_USERNAME: str = 'root'
-MYSQL_PASSWORD: str = "13097460841"
+MYSQL_PASSWORD: str = "root"
+# MYSQL_PASSWORD: str = "labcloud2022!"
+# 服务器
+# MYSQL_HOST: Union[AnyHttpUrl, IPvAnyAddress] = "222.197.219.49:3300"
+# 本地
 MYSQL_HOST: Union[AnyHttpUrl, IPvAnyAddress] = "127.0.0.1:3306"
 MYSQL_DATABASE: str = 'kust_inspection'
 
@@ -287,3 +291,9 @@ class RelativesOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+class genTeam(BaseModel):
+    inspected_unit: str
+    native_place: str
+    birth_place: str
+    graduation_school: str

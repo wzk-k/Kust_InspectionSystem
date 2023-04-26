@@ -38,12 +38,6 @@ async def add_inspection_task(task: CreateInspectionTask):
     return {"code": 200, "id": task_id}
 
 
-class genTeam(BaseModel):
-    inspected_unit: str
-    native_place: str
-    birth_place: str
-    graduation_school: str
-
 
 """
 添加规避规则
