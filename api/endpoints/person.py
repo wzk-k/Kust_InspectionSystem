@@ -40,10 +40,13 @@ async def add_person(person : CreatPerson ):
                 graduation_school=person.graduation_school
             )
         session.add(data_person)
-        session.commit()
-        session.close()
+        # session.commit()
+        # session.close()
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
+    finally:
+        session.commit()
+        session.close()
     return {"code": 200, "id": person_id}
 
 
@@ -86,9 +89,12 @@ async def get_person(
                                                     Person.work_unit.contains(work_unit)
                                                     )).offset(offset_data).limit(pageSize).all()
             return {"code": 200, "data": persons, "total": count}
-        session.close()
+
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
+    finally:
+        # session.commit()
+        session.close()
 
 
 class DelPerson(BaseModel):
@@ -110,32 +116,47 @@ async def delete_person(
             return {"code": "0002", "message": "该人员未找到！"}
         # 删除记录
         session.delete(person)
-        session.commit()
+        # session.commit()
         return {"code": 200, "message": "Person deleted successfully"}
     except Exception as e:
         # 捕获异常，并返回错误信息
         return {"code": "0002", "message": "未知错误"}
+    finally:
+        session.commit()
+        session.close()
 
 @router.post("/updatePersn/{person_id}", summary="更新人员", description="更新已经存在的人员信息")
 async def update_person(person_id: str, person: UpdatePerson):
-    # 查询要更新的Person对象
-    person_to_update = session.query(Person).filter(Person.id == person_id).first()
+    try:
+        # 查询要更新的Person对象
+        person_to_update = session.query(Person).filter(Person.id == person_id).first()
 
-    # 如果找不到Person对象，返回404错误
-    if person_to_update is None:
-        return {"code": "404", "message": "人员不存在"}
+        # 如果找不到Person对象，返回404错误
+        if person_to_update is None:
+            return {"code": "404", "message": "人员不存在"}
 
-    print(person.dict())
-    # 更新Person对象的属性
-    for attr, value in person.dict().items():
-        if value is not None:
-            setattr(person_to_update, attr, value)
+        print(person.dict())
+        # 更新Person对象的属性
+        for attr, value in person.dict().items():
+            if value is not None:
+                setattr(person_to_update, attr, value)
 
-    # 将更改提交到数据库
-    session.commit()
-    session.close()
-    # 返回更新后的Person对象
-    return {"code": "200", "message": "更新成功"}
+        # 将更改提交到数据库
+        # session.commit()
+        # session.close()
+        # 返回更新后的Person对象
+        return {"code": "200", "message": "更新成功"}
+
+    except Exception as e:
+         # 捕获异常，并返回错误信息
+        return {"code": "0002", "message": "未知错误"}
+    finally:
+        session.commit()
+        session.close()
+        print("关闭了连接...")
+
+
+
 
 
 

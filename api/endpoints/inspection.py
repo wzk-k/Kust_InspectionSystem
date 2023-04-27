@@ -31,10 +31,13 @@ async def add_inspection_task(task: CreateInspectionTask):
             security_classification=task.security_classification,
         )
         session.add(data_task)
-        session.commit()
-        session.close()
+        # session.commit()
+        # session.close()
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
+    finally:
+        session.commit()
+        session.close()
     return {"code": 200, "id": task_id}
 
 
@@ -47,13 +50,14 @@ async def generate_inspection_team(
         # inspected_unit: Optional[str] = "任职单位",native_place:Optional[str] = "籍贯",birth_place:Optional[str] = "出生地",graduation_school:Optional[str] = "毕业院校",
         rule: genTeam
                                    ):
-    # 获取所有候选人
-    candidates = session.query(Person).all()
 
-    print(candidates)
     # 定义一个空列表，用于存储符合条件的巡视组成员
     inspection_team = []
     try:
+        # 获取所有候选人
+        candidates = session.query(Person).all()
+
+        print(candidates)
         for candidate in candidates:
             # 检查回避条件
             # 1.a)	回避本人任职单位以及亲属关系任职单位承担巡视巡察工作
@@ -84,9 +88,14 @@ async def generate_inspection_team(
                 inspection_team.append(candidate)
         # print(inspection_team)
 
+        # session.commit()
+        # session.close()
         return {"code": 200, "data": inspection_team}
     except ArithmeticError:
         return {"code": "0002", "message": "发生错误"}
+    finally:
+        # session.commit()
+        session.close()
 
 
 # 根据巡查任务ID获取巡视组
@@ -94,9 +103,14 @@ async def generate_inspection_team(
 async def get_groups_by_task(task_id: str):
     try:
         groups = session.query(InspectionGroup).filter(InspectionGroup.task_id == task_id).all()
+        # session.commit()
+        # session.close()
         return groups
     except Exception as e:
         return {"code": "0001", "message": f"数据库异常: {e}"}
+    finally:
+        # session.commit()
+        session.close()
 
 
 @router.get("/allGroups", summary="根据巡查任务ID获取巡视组")
@@ -108,10 +122,14 @@ async def get_groups_by_task(
         count = len(list(session.query(InspectionGroup).all()))
         offset_data = pageSize * (pageNum - 1)
         groups = session.query(InspectionGroup).offset(offset_data).limit(pageSize).all()
-        session.close()
+
         return {"code": 200, "data": groups, "total": count}
     except Exception as e:
         return {"code": "0001", "message": f"数据库异常: {e}"}
+    finally:
+        # session.commit()
+        session.close()
+
 
 
 # 获取巡查任务列表
@@ -124,9 +142,14 @@ async def list_inspection_tasks(
         count = len(list(session.query(InspectionTask).all()))
         offset_data = pageSize * (pageNum - 1)
         tasks = session.query(InspectionTask).offset(offset_data).limit(pageSize).all()
+        # session.commit()
+        # session.close()
         return {"code": 200, "data": tasks, "total": count}
     except Exception as e:
         return {"code": "0001", "message": f"数据库异常: {e}"}
+    finally:
+        # session.commit()
+        session.close()
 
 
 # """

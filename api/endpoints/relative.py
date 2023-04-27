@@ -19,6 +19,9 @@ async def get_person_relatives(person_id: str):
     for relative in relatives:
         print(relative.relative_id)
     # return relatives
+    session.commit()
+    session.close()
+    print("关闭了连接...")
     return {"code":"200" ,"data":relatives}
 #
 @router.delete("/{person_id}/delRelative/{relative_id}")
@@ -32,11 +35,16 @@ async def remove_relative(person_id: str, relative_id: str):
         for relation in relations:
             session.delete(relation)
 
-        session.commit()
+        # session.commit()
+        # session.close()
         return {"code":"200 ","message": "亲属关系删除成功"}
     except SQLAlchemyError as e:
         session.rollback()
         return {"code": "0001", "message": "失败！"+{e}}
+    finally:
+        session.commit()
+        session.close()
+        print("关闭了连接...")
 
 @router.put("{person_id}/uprelative/{relative_id}")
 async def update_person_relative(person_id: str, relative_id: str, new_relation: str):
@@ -52,13 +60,18 @@ async def update_person_relative(person_id: str, relative_id: str, new_relation:
                     relation.relation = new_relation
                 else:
                     relation.relation = inverse_new_relation
-            session.commit()
+            # session.commit()
+            # session.close()
             return {"code":200,"message":"修改成功"}
         else:
             return {"code": "0002", "message": "未找到该关系！"}
     except SQLAlchemyError as e:
         session.rollback()
         raise HTTPException(status_code=400, detail=f"Error updating relative relationship: {e}")
+    finally:
+        session.commit()
+        session.close()
+        print("关闭了连接...")
 
 @router.post("/addRelatives",summary="添加亲属关系", description="添加关系为双向的")
 def create_relative(relative: RelativeCreate):
@@ -79,7 +92,8 @@ def create_relative(relative: RelativeCreate):
         # 将两个Relatives对象添加到数据库中
         session.add(relative1)
         session.add(relative2)
-        session.commit()
+        # session.commit()
+        # session.close()
         # session.refresh(relative1)
         # session.refresh(relative2)
         # 返回创建的Relatives对象
@@ -88,3 +102,7 @@ def create_relative(relative: RelativeCreate):
         session.rollback()
         print(f"Error adding relative: {e}")
         return {"code": "0001", "meaasge": "发生错误，添加失败"}
+    finally:
+        session.commit()
+        session.close()
+        print("关闭了连接...")

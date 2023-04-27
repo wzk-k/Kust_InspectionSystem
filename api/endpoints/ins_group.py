@@ -23,10 +23,13 @@ async def add_inspection_group(group: CreateInspectionGroup):
             task_id=group.task_id
         )
         session.add(data_group)
-        session.commit()
-        session.close()
+        # session.commit()
+        # session.close()
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
+    finally:
+        session.commit()
+        session.close()
     return {"code": 200, "id": group_id}
 
 """
@@ -51,12 +54,15 @@ async def add_person_to_group(request: AddPersonToGroupRequest):
             # 将满足规避规则的人员添加到组中
             group.members.append(person)
 
-        # 提交更改并关闭会话
-        session.commit()
-        session.close()
+        # # 提交更改并关闭会话
+        # session.commit()
+        # session.close()
 
     except ArithmeticError:
         return {"code": "0002", "message": "数据库异常"}
+    finally:
+        session.commit()
+        session.close()
 
     return {"code": 200, "message": "人员添加成功"}
 
@@ -76,11 +82,17 @@ async def get_group_members(group_id: str):
             member_dict = member.__dict__
             member_dict.pop('_sa_instance_state', None)
             member_list.append(member_dict)
+        # session.commit()
+        # session.close()
 
         return {"code": 200, "members": member_list}
 
     except Exception as e:
         return {"code": "0002", "message": f"数据库异常: {e}"}
+
+    finally:
+        session.close()
+
 
 # 删除组成员
 @router.delete("/{group_id}/member/{member_id}", summary="从巡视组中删除成员")
@@ -95,12 +107,15 @@ async def delete_group_member(group_id: str, member_id: str):
             return {"code": "0002", "message": "成员未找到"}
 
         group.members.remove(member)
-        session.commit()
 
         return {"code": 200, "message": "成员已从巡视组中移除"}
 
     except Exception as e:
         return {"code": "0003", "message": f"数据库异常: {e}"}
+
+    finally:
+        session.commit()
+        session.close()
 
 
 
