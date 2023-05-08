@@ -66,7 +66,8 @@ class Person(Base):
     current_position = Column(VARCHAR(128), nullable=True, comment="现任职务")
     proposed_position = Column(VARCHAR(128), nullable=True, comment="拟任职务")
     proposed_dismissal_position = Column(VARCHAR(128), nullable=True, comment="拟免职务")
-    graduation_school = Column(VARCHAR(128), nullable=True, comment="毕业学校")
+    graduation_school = Column(VARCHAR(128), nullable=True, comment="本科毕业学校")
+    graduation_school2 = Column(VARCHAR(128), nullable=True, comment="硕士毕业学校")
     talent_pool_type = Column(VARCHAR(128), nullable=True, comment="人才库类型")
     personnel_source = Column(VARCHAR(128), nullable=True, comment="人员来源")
     relatives = relationship("Relatives", foreign_keys="[Relatives.person_id]", back_populates="person")
@@ -75,7 +76,8 @@ class Person(Base):
     def __init__(self, id=None, name=None, sex=None, phone=None, native_place=None,
                  birth_place=None, work_unit=None, unit_level=None, unit_location=None,
                  current_position=None, proposed_position=None, proposed_dismissal_position=None,
-                 graduation_school=None, number=None, talent_pool_type=None, personnel_source=None):
+                 graduation_school=None, number=None, talent_pool_type=None, personnel_source=None,
+                 graduation_school2 = None):
         self.id = id if id is not None else gen_uuid()
         self.name = name
         self.sex = sex
@@ -92,6 +94,7 @@ class Person(Base):
         self.number = number
         self.talent_pool_type = talent_pool_type
         self.personnel_source = personnel_source
+        self.graduation_school2 = graduation_school2
         # self.number = number
 
 
